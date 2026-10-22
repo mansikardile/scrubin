@@ -309,8 +309,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       <div class="tool-group">
         <label for="engine">Scrubbing Engine:</label>
         <select id="engine">
-          <option value="none">Deterministic Rules Only (15,000+ lines/sec)</option>
-          <option value="ollama" selected>Hybrid: Rules + Ollama Qwen2.5 (100% Recall)</option>
+          <option value="none" selected>Deterministic Rules (Instant · 15,000+ lines/sec)</option>
+          <option value="ollama">Hybrid: Rules + Ollama Qwen2.5 (Deep NER for Names/Cities)</option>
         </select>
         <button class="btn-scrub" onclick="scrubText()">⚡ Scrub PII</button>
       </div>
@@ -361,7 +361,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
 
       if (!text.trim()) return;
 
-      outBox.textContent = 'Processing locally...';
+      outBox.textContent = engine === 'ollama' ? 'Processing with local Ollama Qwen2.5 (running on machine)...' : 'Scrubbing instantly...';
       pillsBox.innerHTML = '<span class="badge-pill">Scanning...</span>';
 
       try {
@@ -431,8 +431,13 @@ class StudioHandler(BaseHTTPRequestHandler):
                 req = json.loads(body.decode("utf-8"))
                 text = req.get("text", "")
                 engine = req.get("engine", "none")
-                sc = Scrubber(rules=True, engine=engine)
-                cleaned = sc.scrub(text)
+                try:
+                    sc = Scrubber(rules=True, engine=engine)
+                    cleaned = sc.scrub(text)
+                except Exception:
+                    # Graceful fallback to deterministic rules if engine fails
+                    sc = Scrubber(rules=True, engine="none")
+                    cleaned = sc.scrub(text)
                 report = sc.report()
                 res = json.dumps({"scrubbed": cleaned, "report": report})
                 self.send_response(200)
