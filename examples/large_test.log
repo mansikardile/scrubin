@@ -1,0 +1,25 @@
+2026-10-21 10:14:02 INFO [auth-svc] health check passed status=UP latency=4ms req_id=e7b41f92-9014-4c8e-b529-684201824701
+2026-10-21 10:14:05 ERROR [payment-gateway] transaction failed for customer Rohan Deshmukh (rohan.d@gmail.com, +91 98765 43210), PAN ABCDE1234F, Aadhaar 2345 6789 0124, token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlJvaGFuIERlc2htdWtoIn0.s3cr3ts1gn4tur3
+2026-10-21 10:14:09 WARN [rate-limiter] retry 1/3 for user rohan.d@gmail.com from client IP 203.0.113.42 port=54321
+2026-10-21 10:14:15 INFO [inventory-svc] sku=4829105 stock=42 warehouse=BLR-NORTH status=AVAILABLE
+2026-10-21 10:14:18 ERROR [aws-s3] upstream connection timeout: access_key=AKIAIOSFODNN7EXAMPLE bucket=prod-customer-documents ip=198.51.100.24
+2026-10-21 10:14:22 INFO [payment-gateway] retry succeeded for rohan.d@gmail.com card 4111 2222 3333 4444 order_ref=ORD-9821401829
+2026-10-21 10:14:30 INFO [db-pool] active_connections=14 idle=8 max_pool=50 wait_ms=1.2
+Hi support, this is Priya Deshpande from Kothrud, Pune. My package for order #982104 hasn't arrived. Call me on 9822012345 or email priya.desh88@gmail.com.
+2026-10-21 10:15:02 DEBUG [session-mgr] bearer_token=XfFYSJYgOuwgz7z54VfB4PbxntqB5IGk user=Vikram Malhotra ip=10.0.4.18
+2026-10-21 10:15:10 INFO [gc-logger] GC pause: young=12ms old=2ms heap_used_mb=540 total_mb=2048
+Ticket #4819: Customer Sanjay Kulkarni (+91-9844012345) from Whitefield, Bangalore reports double deduction on credit card 4242 4242 4242 4242. Aadhaar 4430 3067 3949 attached for KYC.
+2026-10-21 10:15:35 WARN [ingress-nginx] 404 GET /api/v1/missing-route from 192.0.2.14 user_agent="Mozilla/5.0"
+2026-10-21 10:15:42 ERROR [kyc-verifier] document rejected: name="Aarav Patil", pan=BKZPA9912K, reason="name mismatch with bank account"
+2026-10-21 10:16:01 INFO [order-dispatcher] order #84240871 delivered to Hinjewadi, Pune in 2 attempts
+2026-10-21 10:16:15 DEBUG [cache-redis] key "session:user:88192" cached TTL=3600 hits=1043
+Customer Meera Joshi (meera.j@corp.net, 7718587682) requests refund to account. Shipped to Baner, Pune.
+2026-10-21 10:16:40 ERROR [postgres] deadlock detected on table "orders" txid=4928172 lock_mode=RowExclusiveLock
+2026-10-21 10:17:05 INFO [checkout] payment ok for amit.sharma@yahoo.co.in phone +91 85835 86505 pan CRWPS7821Q
+2026-10-21 10:17:18 WARN [auth-svc] suspicious login attempt for user ananya.r@gmail.com from untrusted IP 198.51.100.89
+2026-10-21 10:17:30 INFO [cron-job] nightly report generated in 4.2s size_bytes=1048576 files=12
+Hi team, please update delivery address for customer Kavya Singh to Salt Lake, Kolkata. Reachable at 9830098300.
+2026-10-21 10:18:00 DEBUG [audit-trail] user=Vikram Malhotra action=UPDATE_POLICY resource=res-8819
+2026-10-21 10:18:14 INFO [metrics] cpu_percent=32.4 mem_percent=61.8 disk_io_read_mb=12.1
+2026-10-21 10:18:45 ERROR [payout-svc] IFSC code SBIN0001234 invalid for beneficiary Arjun Reddy (arjun.r@outlook.com)
+2026-10-21 10:19:00 INFO [health-check] 200 OK latency=2.1ms all services healthy
