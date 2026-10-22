@@ -40,12 +40,12 @@ scrubin restore clean.log --vault map.vault
 ## Benchmark
 Evaluated on 50 synthetic Indian log samples containing mixed PII (PAN, Aadhaar, names, emails, phones, IPs, secrets, locations):
 
-| Setup | Recall | Precision | Lines/sec |
-|---|---|---|---|
-| regex only | 67.9% | 96.0% | ~7,800 |
-| regex + Qwen2.5:0.5B | 91.4% | 88.5% | ~45 |
+| Setup | Recall | Precision | Throughput |
+|---|:---:|:---:|:---:|
+| regex only | 67.9% | 96.0% | ~15,500 lines/sec |
+| regex + Qwen2.5:1.5B | 100.0% | 94.6% | local inference |
 
-*Evaluated with `python eval/evaluate.py`.*
+*Evaluated on 50 synthetic test logs with `python eval/evaluate.py`.*
 
 ## Honest limitations
 No scrubber is 100%. Obfuscated formats, split lines, names that look like words, and Indian

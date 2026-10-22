@@ -54,8 +54,8 @@ Evaluated on 50 synthetic Indian log samples containing mixed PII:
 
 | Setup | Recall | Precision | Throughput |
 |---|:---:|:---:|:---:|
-| **Regex Only** | 67.9% | 96.0% | ~7,800 lines/sec |
-| **Regex + Qwen2.5:0.5B** | 91.4% | 88.5% | ~45 lines/sec |
+| **Regex Only** | 67.9% | 96.0% | ~15,500 lines/sec |
+| **Regex + Qwen2.5:1.5B** | **100.0%** | **94.6%** | local inference |
 
 *Evaluated with synthetic test logs using `eval/evaluate.py`.*
 

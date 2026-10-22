@@ -40,7 +40,7 @@ htmlcov/
 # Sensitive or temporary files
 *.vault
 map.vault
-eval/data.jsonl
+eval/*.jsonl
 *.log
 !examples/*.log
 
