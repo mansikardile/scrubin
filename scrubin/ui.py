@@ -7,7 +7,7 @@ import json
 import os
 import sys
 import webbrowser
-from http.server import HTTPServer, BaseHTTPRequestHandler
+from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
 
 from .pipeline import Scrubber
@@ -450,7 +450,7 @@ class StudioHandler(BaseHTTPRequestHandler):
 
 
 def run_studio(port: int = 8765):
-    server = HTTPServer(("127.0.0.1", port), StudioHandler)
+    server = ThreadingHTTPServer(("127.0.0.1", port), StudioHandler)
     url = f"http://localhost:{port}"
     print(f"\n=======================================================")
     print(f"  ScrubIN Studio running at: {url}")
