@@ -37,6 +37,9 @@ def main(argv=None) -> int:
     r.add_argument("file", nargs="?", default="-")
     r.add_argument("--vault", required=True)
 
+    u = sub.add_parser("ui", help="launch local web UI Studio")
+    u.add_argument("--port", type=int, default=8765, help="port to listen on (default: 8765)")
+
     a = p.parse_args(argv)
 
     if a.cmd == "scrub":
@@ -47,10 +50,13 @@ def main(argv=None) -> int:
             vault.save(sc.mapping, a.vault, _password())
         if a.report:
             print("scrubbed:", sc.report() or "nothing found", file=sys.stderr)
-    else:
+    elif a.cmd == "restore":
         from . import vault
         mapping = vault.load(a.vault, _password())
         sys.stdout.write(re.sub(r"<[A-Z]+_\d+>", lambda m: mapping.get(m.group(0), m.group(0)), _read(a.file)))
+    elif a.cmd == "ui":
+        from .ui import run_studio
+        run_studio(port=a.port)
     return 0
 
 

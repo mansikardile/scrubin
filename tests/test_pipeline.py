@@ -43,3 +43,10 @@ def test_vault_roundtrip(tmp_path):
     p = str(tmp_path / "m.vault")
     vault.save(s.mapping, p, "pw")
     assert vault.load(p, "pw") == {"<EMAIL_1>": "rohan@x.com"}
+
+
+def test_ui_studio_template():
+    from scrubin.ui import HTML_TEMPLATE
+    assert "ScrubIN" in HTML_TEMPLATE
+    assert "/api/scrub" in HTML_TEMPLATE
+    assert "Preserve" not in HTML_TEMPLATE

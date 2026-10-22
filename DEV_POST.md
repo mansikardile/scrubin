@@ -10,25 +10,37 @@ Every day, engineers paste production logs and customer support tickets into Sla
 
 More often than not, those logs contain real names, phone numbers, email addresses, and Indian identity data like PAN and Aadhaar numbers. Under India's **Digital Personal Data Protection (DPDP) Act** and **GDPR**, leaking identifiable personal information carries serious compliance and privacy risks.
 
-The common workaround—sending your raw logs to an API or cloud LLM to find PII—ironically leaks the very sensitive data you're trying to protect.
+The common workaround—sending raw logs to an external API or cloud LLM to find PII—ironically leaks the very sensitive data you're trying to protect.
 
 Meet **[ScrubIN](https://github.com/mansikardile/scrubin)**: an open-source, local-first PII scrubber designed specifically for developer workflows.
 
 ---
 
-## ⚡ How It Works
+## ⚡ Why AI Matters: Rules vs. Hybrid Pipeline
 
-ScrubIN combines fast deterministic rules with local open-weight language models via Ollama to scrub PII without any data leaving your machine:
+Deterministic regular expressions are ultra-fast (~15,000 lines/sec) and catch structured identifiers (PAN, Aadhaar, emails, phones, tokens) with near-zero false alarms. But **rules alone cannot understand contextual free text**, such as Indian customer names and locations in support tickets:
+
+| Text Fragment | Regex Rules Only | Hybrid: Rules + Qwen2.5 1.5B |
+|---|---|---|
+| `user Rohan Deshmukh (rohan.d@gmail.com)` | `user Rohan Deshmukh (<EMAIL_1>)` ❌ *Name leaked* | `user <PERSON_1> (<EMAIL_1>)` ✅ |
+| `shipped to Kothrud, Pune` | `shipped to Kothrud, Pune` ❌ *Address leaked* | `shipped to <LOCATION_1>, Pune` ✅ |
+| `PAN ABCDE1234F, Aadhaar 2345 6789 0124` | `PAN <PAN_1>, Aadhaar <AADHAAR_1>` ✅ | `PAN <PAN_1>, Aadhaar <AADHAAR_1>` ✅ |
+
+---
+
+## 🏗️ Architecture
 
 1. **Deterministic Rules & Algorithmic Validators**:
    - High-precision regex patterns for Indian identifiers: PAN, Aadhaar (Verhoeff checksum), Indian mobile numbers, emails, IPv4/IPv6, and JWT/API secret tokens.
    - Algorithmic validation filters out false positives before replacement.
-2. **Local Model Layer (Ollama / Qwen2.5)**:
-   - For unstructured text and context-dependent entities (Indian names, locations, addresses), a lightweight local model (`qwen2.5:0.5b`) scans the text locally.
+2. **Local Model Layer (Ollama / Qwen2.5 1.5B)**:
+   - For unstructured text and context-dependent entities (Indian names, locations, addresses), a lightweight local model (`qwen2.5:1.5b`) scans the text locally via Ollama.
 3. **Consistent Pseudonymization**:
    - Repeated references to the same entity receive the same placeholder (e.g., `<PERSON_1>`, `<EMAIL_1>`). A log line reading *"<PERSON_1> failed 3 times, then succeeded"* remains fully debuggable.
 4. **Reversible Vault (Optional)**:
-   - Encrypt original values with an AES key (`--vault map.vault`) to restore logs later if required for audited debugging.
+   - Encrypt original values with an AES-256-GCM key (`--vault map.vault`) to restore logs later if required for audited debugging.
+5. **Local Web Studio**:
+   - Built-in zero-dependency web interface (`scrubin ui`) for live interactive scrubbing, side-by-side comparison, and visual entity counts.
 
 ---
 
@@ -48,16 +60,28 @@ ScrubIN combines fast deterministic rules with local open-weight language models
 
 ---
 
-## 📊 Benchmark
+## 📊 Benchmark & Per-Entity Breakdown
 
-Evaluated on 50 synthetic Indian log samples containing mixed PII:
+Evaluated on 50 synthetic Indian log samples containing mixed PII across 8 categories:
 
-| Setup | Recall | Precision | Throughput |
+| Setup | Overall Recall | Overall Precision | Throughput |
 |---|:---:|:---:|:---:|
-| **Regex Only** | 67.9% | 96.0% | ~15,500 lines/sec |
-| **Regex + Qwen2.5:1.5B** | **100.0%** | **94.6%** | local inference |
+| **Regex Only** | 67.9% | 96.0% | **~15,500 lines/sec** |
+| **Hybrid (Regex + Qwen2.5:1.5B)** | **100.0%** | **94.6%** | local inference |
 
-*Evaluated with synthetic test logs using `eval/evaluate.py`.*
+### Per-Entity Breakdown
+
+| Entity Type | Count | Regex Recall | Hybrid Recall | Guard Mechanism |
+|---|:---:|:---:|:---:|---|
+| **AADHAAR** | 8 | 100.0% | **100.0%** | Verhoeff Checksum validation |
+| **CARD** | 9 | 100.0% | **100.0%** | Luhn Checksum validation |
+| **EMAIL** | 15 | 100.0% | **100.0%** | RFC format validation |
+| **IP (v4/v6)** | 12 | 100.0% | **100.0%** | Range checks |
+| **PAN** | 5 | 100.0% | **100.0%** | Format pattern |
+| **PHONE** | 15 | 100.0% | **100.0%** | Mobile prefixes (`+91`) |
+| **SECRET** | 8 | 100.0% | **100.0%** | JWT & AWS Access Keys |
+| **PERSON** | 21 | 0.0% | **100.0%** | Contextual NER via Qwen2.5 |
+| **LOCATION** | 13 | 0.0% | **100.0%** | Contextual NER via Qwen2.5 |
 
 ---
 
@@ -70,10 +94,11 @@ pip install -e ".[model,vault]"
 # Pull the lightweight local model
 ollama pull qwen2.5:1.5b
 
-# Scrub a log file
-scrubin scrub examples/sample.log --engine ollama
+# Launch the interactive local studio
+scrubin ui
 
-# Pipe directly from kubectl or cat
+# Or scrub directly from terminal / pipe
+scrubin scrub examples/sample.log --engine ollama
 kubectl logs mypod | scrubin scrub - | pbcopy
 ```
 
