@@ -21,7 +21,7 @@ class Scrubber:
             self.detectors.append(GlinerDetector(model_name or "urchade/gliner_small-v2.1", threshold))
         elif engine == "ollama":
             from .detectors.ollama_llm import OllamaDetector
-            self.detectors.append(OllamaDetector(model_name or "qwen2.5:0.5b"))
+            self.detectors.append(OllamaDetector(model_name or "qwen2.5:1.5b"))
         elif engine not in (None, "none"):
             raise ValueError(f"unknown engine: {engine}")
         self.placeholders = PlaceholderMap()

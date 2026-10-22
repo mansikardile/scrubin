@@ -24,13 +24,13 @@ Relevant to India's DPDP Act and GDPR.
 ## Install
 ```bash
 pip install -e ".[model,vault]"
-ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:1.5b
 ```
 
 ## Use
 ```bash
 scrubin scrub examples/sample.log                      # rules only
-scrubin scrub examples/sample.log --engine ollama      # + Qwen2.5 0.5B
+scrubin scrub examples/sample.log --engine ollama      # + Qwen2.5 1.5B
 scrubin scrub examples/sample.log --engine gliner      # + GLiNER
 kubectl logs mypod | scrubin scrub - | pbcopy          # pipe mode
 scrubin scrub app.log --vault map.vault > clean.log

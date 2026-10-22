@@ -68,7 +68,7 @@ Evaluated on 50 synthetic Indian log samples containing mixed PII:
 pip install -e ".[model,vault]"
 
 # Pull the lightweight local model
-ollama pull qwen2.5:0.5b
+ollama pull qwen2.5:1.5b
 
 # Scrub a log file
 scrubin scrub examples/sample.log --engine ollama

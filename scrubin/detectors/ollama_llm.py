@@ -32,7 +32,7 @@ PROMPT = (
 
 
 class OllamaDetector:
-    def __init__(self, model: str = "qwen2.5:0.5b", host: str = "http://localhost:11434"):
+    def __init__(self, model: str = "qwen2.5:1.5b", host: str = "http://localhost:11434"):
         self.model, self.host = model, host
 
     def _ask(self, chunk: str) -> list:
