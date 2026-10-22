@@ -1,26 +1,31 @@
-"""Layer 2 (option B): a small instruction-tuned LLM served by local Ollama.
+"""Local Ollama detector for contextual entities (names, locations, addresses).
 
-Default: `ollama pull qwen2.5:0.5b` (~0.4 GB).
-Traffic never leaves localhost.
+Combines lightweight local LLMs with validated, chunk-relative entity spans.
 """
 from __future__ import annotations
 
 import json
 import re
+import urllib.error
 import urllib.request
-from typing import Dict, List
+from typing import List
 
 from ..types import Span
 from .base import iter_chunks
 
-TYPES = {"PERSON": "PERSON", "ADDRESS": "ADDRESS", "LOCATION": "LOCATION", "ORG": "ORG"}
+TYPES = {
+    "PERSON": "PERSON",
+    "ADDRESS": "ADDRESS",
+    "LOCATION": "LOCATION",
+    "ORG": "ORG",
+}
 
 PROMPT = (
-    "You find personal data in text from logs and support tickets, often Indian names and places. "
-    "Return ONLY JSON: {\"entities\": [{\"text\": \"<exact substring>\", \"type\": \"PERSON|LOCATION|ADDRESS|ORG\"}]}. "
+    "Identify personal names, physical addresses, locations, and organization names in text from logs and support tickets. "
+    'Return ONLY JSON: {"entities": [{"text": "<exact substring>", "type": "PERSON|LOCATION|ADDRESS|ORG"}]}. '
     "PERSON = a person's name, LOCATION = city or locality, ADDRESS = street address, ORG = company. "
-    "Copy substrings exactly. Ignore emails, numbers, IDs and tokens. "
-    "If there is no personal data return {\"entities\": []}.\n\n"
+    "Copy substrings exactly. Do not include surrounding words. Ignore emails, numbers, IDs, and tokens. "
+    'If there is no personal data return {"entities": []}.\n\n'
     "Text: Hi, this is Anil from Salem, my parcel is late.\n"
     'Output: {"entities": [{"text": "Anil", "type": "PERSON"}, {"text": "Salem", "type": "LOCATION"}]}\n\n'
     "Text: 2026-10-02 ERROR refund failed for user Farhan Qureshi, shipped to Ludhiana\n"
@@ -32,40 +37,100 @@ PROMPT = (
 
 
 class OllamaDetector:
-    def __init__(self, model: str = "qwen2.5:1.5b", host: str = "http://localhost:11434"):
-        self.model, self.host = model, host
+    def __init__(
+        self,
+        model: str = "qwen2.5:1.5b",
+        host: str = "http://localhost:11434",
+        timeout: int = 120,
+    ):
+        self.model = model
+        self.host = host.rstrip("/")
+        self.timeout = timeout
 
     def _ask(self, chunk: str) -> list:
-        payload = {"model": self.model, "prompt": PROMPT + chunk + "\nOutput: ", "stream": False,
-                   "format": "json", "options": {"temperature": 0}}
-        req = urllib.request.Request(f"{self.host}/api/generate", data=json.dumps(payload).encode(),
-                                     headers={"Content-Type": "application/json"})
+        payload = {
+            "model": self.model,
+            "prompt": PROMPT + chunk + "\nOutput: ",
+            "stream": False,
+            "format": "json",
+            "options": {"temperature": 0},
+        }
+        request = urllib.request.Request(
+            f"{self.host}/api/generate",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+
         try:
-            with urllib.request.urlopen(req, timeout=120) as r:
-                data = json.load(r)
-        except OSError as e:
-            raise RuntimeError("Cannot reach Ollama. Start it with `ollama serve` "
-                               f"and `ollama pull {self.model}`.") from e
+            with urllib.request.urlopen(
+                request, timeout=self.timeout
+            ) as response:
+                data = json.load(response)
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise RuntimeError(
+                f"Cannot reach Ollama at {self.host}. "
+                f"Start Ollama and pull the model {self.model!r}."
+            ) from exc
+
         try:
-            ents = json.loads(data["response"]).get("entities", [])
-            return ents if isinstance(ents, list) else []
-        except (ValueError, AttributeError, KeyError):
+            result = json.loads(data["response"])
+        except (ValueError, TypeError, KeyError):
             return []
 
+        entities = result.get("entities", [])
+        return entities if isinstance(entities, list) else []
+
     def detect(self, text: str) -> List[Span]:
-        # 1) ask the model chunk by chunk (small chunks suit a 0.5B model)
-        found: Dict[str, str] = {}
-        for _, chunk in iter_chunks(text, 400):
-            for ent in self._ask(chunk):
-                if not isinstance(ent, dict):
-                    continue
-                t = ent.get("text")
-                label = TYPES.get(str(ent.get("type", "")).upper())
-                if isinstance(t, str) and label and len(t.strip()) >= 2 and t in chunk:
-                    found[t.strip()] = label
-        # 2) propagate: every occurrence of a found entity, anywhere in the text
         spans: List[Span] = []
-        for t, label in found.items():
-            for m in re.finditer(r"(?<!\w)" + re.escape(t) + r"(?!\w)", text):
-                spans.append(Span(m.start(), m.end(), label, t, "ollama"))
+
+        for offset, chunk in iter_chunks(text, 400):
+            for entity in self._ask(chunk):
+                if not isinstance(entity, dict):
+                    continue
+
+                label = TYPES.get(str(entity.get("type", "")).upper())
+                value = entity.get("text")
+                start = entity.get("start")
+                end = entity.get("end")
+
+                if label is None or not isinstance(value, str):
+                    continue
+                value = value.strip()
+                if not value or len(value) < 2 or value not in chunk:
+                    continue
+
+                if start is not None or end is not None:
+                    # Explicit offsets provided: validate them strictly
+                    if not isinstance(start, int) or isinstance(start, bool):
+                        continue
+                    if not isinstance(end, int) or isinstance(end, bool):
+                        continue
+                    if not (0 <= start < end <= len(chunk)):
+                        continue
+                    if chunk[start:end] != value:
+                        continue
+                    spans.append(
+                        Span(
+                            offset + start,
+                            offset + end,
+                            label,
+                            value,
+                            "ollama",
+                        )
+                    )
+                else:
+                    # Locate occurrences within this chunk
+                    pattern = r"(?<!\w)" + re.escape(value) + r"(?!\w)"
+                    for m in re.finditer(pattern, chunk):
+                        spans.append(
+                            Span(
+                                offset + m.start(),
+                                offset + m.end(),
+                                label,
+                                value,
+                                "ollama",
+                            )
+                        )
+
         return spans
