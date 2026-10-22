@@ -49,3 +49,7 @@ eval/*.jsonl
 .idea/
 .DS_Store
 Thumbs.db
+
+# Graphify output
+graphify-out/
+
