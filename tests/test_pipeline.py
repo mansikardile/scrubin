@@ -49,4 +49,50 @@ def test_ui_studio_template():
     from scrubin.ui import HTML_TEMPLATE
     assert "ScrubIN" in HTML_TEMPLATE
     assert "/api/scrub" in HTML_TEMPLATE
-    assert "Preserve" not in HTML_TEMPLATE
+    assert "Preserve" not in HTML_TEMPLATE
+
+
+def test_conversational_and_log_secrets():
+    s = Scrubber()
+    cases = [
+        ('{"text": "Hi, this is my password 1234567 "}', '{"text": "Hi, this is my password <SECRET_1> "}'),
+        ("Hi, this is my password 1234567.", "Hi, this is my password <SECRET_1>."),
+        ("my password is secret123", "my password is <SECRET_1>"),
+        ("my password is letmein", "my password is <SECRET_1>"),
+        ("the password was changed to Hunter2!", "the password was changed to <SECRET_1>!"),
+        ("temporary password 928374", "temporary password <SECRET_1>"),
+        ("passcode 482910", "passcode <SECRET_1>"),
+        ("pin 1234", "pin <SECRET_1>"),
+        ("password 'secret_value'", "password '<SECRET_1>'"),
+        ('password "secret_value"', 'password "<SECRET_1>"'),
+        ("password secret123", "password <SECRET_1>"),
+        ("password=1234567", "password=<SECRET_1>"),
+        ("password: 1234567", "password: <SECRET_1>"),
+        ("api_key: sk_test_51Mz9999", "api_key: <SECRET_1>"),
+        ("api-key=abcdef123456", "api-key=<SECRET_1>"),
+        ("client_secret: xyz987654", "client_secret: <SECRET_1>"),
+        ("auth_token: tok_12345678", "auth_token: <SECRET_1>"),
+        ("authorization: Bearer secret_tok_1234", "authorization: Bearer <SECRET_1>"),
+    ]
+    for text, expected in cases:
+        scrubbed = Scrubber().scrub(text)
+        assert "<SECRET_1>" in scrubbed, f"Failed on {text!r}: got {scrubbed!r}"
+
+
+def test_secrets_negative_cases_no_false_positives():
+    s = Scrubber()
+    neg_cases = [
+        "Please enter your password below",
+        "The password should be strong",
+        "password policy updated",
+        "password reset link sent",
+        "password expired yesterday",
+        "password manager recommended",
+        "token expired at midnight",
+        "token invalid error",
+        "user has password protection enabled",
+        "check your password requirements",
+    ]
+    for text in neg_cases:
+        scrubbed = s.scrub(text)
+        assert "<SECRET" not in scrubbed, f"False positive on {text!r}: got {scrubbed!r}"

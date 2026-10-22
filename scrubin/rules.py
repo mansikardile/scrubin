@@ -37,9 +37,28 @@ def _ok_secret_blob(s: str) -> bool:
 
 # (label, compiled regex, capture group to redact, optional validator)
 RULES = [
+    # Explicit secret assignments & copula (e.g. password=..., password: ..., password is ...)
     ("SECRET", re.compile(
-        r"(?i)\b(?:token|secret|password|passwd|pwd|api[_-]?key|access[_-]?key|authorization)\b"
-        r"\s*[=:]\s*[\"']?(?:Bearer\s+)?([^\s\"',;)]{6,})"), 1, None),
+        r"(?i)\b(?:(?:temp(?:orary)?\s+)?(?:password|passwd|pwd|passcode|pin)|"
+        r"(?:api[_-]?|access[_-]?|client[_-]?|private[_-]?|auth[_-]?)?(?:key|token|secret)|"
+        r"authorization|bearer)\b"
+        r"\s*(?:[=:]\s*|\b(?:(?:is|was)\s+(?:changed\s+to|set\s+to|reset\s+to)|is|was|set\s+to|changed\s+to|to|as)\b\s*)"
+        r"[\"']?(?:Bearer\s+)?([^\s\"',;)]{3,}[^\s\"',;)\.,:;!?])"), 1, None),
+    # Direct numeric password / passcode / pin / token (e.g. "my password 1234567")
+    ("SECRET", re.compile(
+        r"(?i)\b(?:(?:temp(?:orary)?\s+)?(?:password|passwd|pwd|passcode|pin)|"
+        r"(?:api[_-]?|access[_-]?|client[_-]?|private[_-]?|auth[_-]?)?(?:key|token|secret))\b\s+"
+        r"(\d{4,32})\b"), 1, None),
+    # Quoted secrets following secret keyword
+    ("SECRET", re.compile(
+        r"(?i)\b(?:(?:temp(?:orary)?\s+)?(?:password|passwd|pwd|passcode|pin)|"
+        r"(?:api[_-]?|access[_-]?|client[_-]?|private[_-]?|auth[_-]?)?(?:key|token|secret))\b\s+"
+        r"[\"']([^\s\"',;)]{3,}[^\s\"',;)\.,:;!?])[\"']"), 1, None),
+    # Alphanumeric mixed secrets (letters + digits) following secret keyword
+    ("SECRET", re.compile(
+        r"(?i)\b(?:(?:temp(?:orary)?\s+)?(?:password|passwd|pwd|passcode|pin)|"
+        r"(?:api[_-]?|access[_-]?|client[_-]?|private[_-]?|auth[_-]?)?(?:key|token|secret))\b\s+"
+        r"(?=[A-Za-z0-9_-]{4,32}\b)(?=[^\s]*\d)(?=[^\s]*[a-zA-Z])([A-Za-z0-9_-]{4,32})"), 1, None),
     ("SECRET", re.compile(r"\beyJ[\w-]{5,}\.[\w-]{5,}\.[\w-]*"), 0, None),          # JWT
     ("SECRET", re.compile(r"\bAKIA[0-9A-Z]{16}\b"), 0, None),                      # AWS
     ("SECRET", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{36,}\b"), 0, None),            # GitHub
