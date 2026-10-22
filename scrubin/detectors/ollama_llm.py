@@ -53,7 +53,10 @@ class OllamaDetector:
             "prompt": PROMPT + chunk + "\nOutput: ",
             "stream": False,
             "format": "json",
-            "options": {"temperature": 0},
+            "options": {
+                "temperature": 0,
+                "num_predict": 256,
+            },
         }
         request = urllib.request.Request(
             f"{self.host}/api/generate",
