@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scrubin"
+version = "0.1.0"
+description = "Local-first PII scrubber for logs and support tickets (rules + open-weight models)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+model = ["gliner>=0.2.0"]
+vault = ["cryptography>=42"]
+dev = ["pytest", "cryptography>=42"]
+
+[project.scripts]
+scrubin = "scrubin.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["scrubin*"]
